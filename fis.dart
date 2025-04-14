@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(
@@ -21,7 +22,7 @@ class FisSayimApp extends StatelessWidget {
           backgroundColor: Colors.red[700],
           titleTextStyle: TextStyle(
             color: Colors.white,
-            fontSize: 20,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -29,7 +30,23 @@ class FisSayimApp extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.red,
             foregroundColor: Colors.white,
-            textStyle: TextStyle(fontWeight: FontWeight.bold),
+            textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.grey[200],
+          labelStyle: TextStyle(
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
           ),
         ),
       ),
@@ -65,14 +82,32 @@ class SayimData extends ChangeNotifier {
       return [];
     }
     return _sayimListesi.where((item) {
-      if (_searchType == 'barkod') {
-        return item.barkod.toLowerCase().startsWith(_searchText.toLowerCase());
-      } else if (_searchType == 'miktar') {
-        return item.miktar.toLowerCase().contains(_searchText.toLowerCase());
-      } else if (_searchType == 'urunAdi') {
-        return (item.urunAdi ?? '').toLowerCase().contains(_searchText.toLowerCase());
-      } else {
-        return false;
+      final searchTextLower = _searchText.toLowerCase();
+      switch (_searchType) {
+        case 'barkod':
+          return item.barkod.toLowerCase().startsWith(searchTextLower);
+        case 'miktar':
+          return item.miktar.toLowerCase().contains(searchTextLower);
+        case 'urunAdi':
+          return (item.urunAdi ?? '').toLowerCase().contains(searchTextLower);
+        case 'kaynakIsyeri':
+          return (item.kaynakIsyeri ?? '').toLowerCase().contains(
+            searchTextLower,
+          );
+        case 'fabrika':
+          return (item.fabrika ?? '').toLowerCase().contains(searchTextLower);
+        case 'kaynakAmbar':
+          return (item.kaynakAmbar ?? '').toLowerCase().contains(
+            searchTextLower,
+          );
+        case 'evrakNo':
+          return (item.evrakNo ?? '').toLowerCase().contains(searchTextLower);
+        case 'ozelKod1':
+          return (item.ozelKod1 ?? '').toLowerCase().contains(searchTextLower);
+        case 'aciklama':
+          return (item.aciklama ?? '').toLowerCase().contains(searchTextLower);
+        default:
+          return false;
       }
     }).toList();
   }
@@ -87,14 +122,9 @@ class SayimData extends ChangeNotifier {
     notifyListeners();
   }
 
-  void sayimGuncelle(int index, String yeniMiktar) {
+  void sayimGuncelle(int index, SayimModel updatedModel) {
     if (index >= 0 && index < _sayimListesi.length) {
-      _sayimListesi[index] = SayimModel(
-        barkod: _sayimListesi[index].barkod,
-        miktar: yeniMiktar,
-        urunAdi: _sayimListesi[index].urunAdi,
-        imageUrl: _sayimListesi[index].imageUrl,
-      );
+      _sayimListesi[index] = updatedModel;
       notifyListeners();
     }
   }
@@ -111,12 +141,26 @@ class SayimModel {
   final String barkod;
   final String miktar;
   final String? urunAdi;
+  final String? kaynakIsyeri;
+  final String? fabrika;
+  final String? kaynakAmbar;
+  final String tarihSaat;
+  final String? evrakNo;
+  final String? ozelKod1;
+  final String? aciklama;
   final String? imageUrl;
 
   SayimModel({
     required this.barkod,
     required this.miktar,
     this.urunAdi,
+    this.kaynakIsyeri,
+    this.fabrika,
+    this.kaynakAmbar,
+    required this.tarihSaat,
+    this.evrakNo,
+    this.ozelKod1,
+    this.aciklama,
     this.imageUrl,
   });
 }
@@ -131,6 +175,12 @@ class _FisSayimEkraniState extends State<FisSayimEkrani>
   final TextEditingController barkodController = TextEditingController();
   final TextEditingController miktarController = TextEditingController();
   final TextEditingController urunAdiController = TextEditingController();
+  final TextEditingController kaynakIsyeriController = TextEditingController();
+  final TextEditingController fabrikaController = TextEditingController();
+  final TextEditingController kaynakAmbarController = TextEditingController();
+  final TextEditingController evrakNoController = TextEditingController();
+  final TextEditingController ozelKod1Controller = TextEditingController();
+  final TextEditingController aciklamaController = TextEditingController();
   late TabController _tabController;
 
   @override
@@ -161,103 +211,199 @@ class _FisSayimEkraniState extends State<FisSayimEkrani>
       ),
       drawer: Drawer(
         child: ListView(
+          padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
               decoration: BoxDecoration(color: Colors.red),
-              child: Text(
-                'Menü',
-                style: TextStyle(color: Colors.white, fontSize: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inventory, size: 48, color: Colors.white),
+                  SizedBox(height: 12),
+                  Text(
+                    'Fiş Sayım Menüsü',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
             ListTile(
-              leading: Icon(Icons.add),
-              title: Text('Ürün Ekle'),
+              leading: Icon(Icons.add_box, color: Colors.red),
+              title: Text('Ürün Ekle', style: TextStyle(fontSize: 16)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ChangeNotifierProvider<SayimData>.value(
-                      value: Provider.of<SayimData>(context, listen: false),
-                      child: UrunEkleSayfasi(),
-                    ),
+                    builder:
+                        (context) => ChangeNotifierProvider<SayimData>.value(
+                          value: Provider.of<SayimData>(context, listen: false),
+                          child: UrunEkleSayfasi(),
+                        ),
                   ),
                 );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.settings, color: Colors.grey),
+              title: Text('Ayarlar', style: TextStyle(fontSize: 16)),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to settings page
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.info, color: Colors.grey),
+              title: Text('Hakkında', style: TextStyle(fontSize: 16)),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to about page
               },
             ),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          aramaTab(context),
-          listeTab(context),
-          toplamTab(context),
-        ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.white, Colors.red.shade100],
+          ),
+        ),
+        child: TabBarView(
+          controller: _tabController,
+          children: [aramaTab(context), listeTab(context), toplamTab(context)],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddSayimDialog(context),
-        child: Icon(Icons.add),
+        backgroundColor: Colors.red[700],
+        child: Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
   Widget aramaTab(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(12.0),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              labelText: 'Arama Tipi',
-              border: OutlineInputBorder(),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Wrap(
+              spacing: 8.0,
+              children: [
+                _buildSearchTypeButton(context, 'barkod', 'Barkod'),
+                _buildSearchTypeButton(context, 'miktar', 'Miktar'),
+                _buildSearchTypeButton(context, 'urunAdi', 'Ürün Adı'),
+                _buildSearchTypeButton(
+                  context,
+                  'kaynakIsyeri',
+                  'Kaynak İşyeri',
+                ),
+                _buildSearchTypeButton(context, 'fabrika', 'Fabrika'),
+                _buildSearchTypeButton(context, 'kaynakAmbar', 'Kaynak Ambar'),
+                _buildSearchTypeButton(context, 'evrakNo', 'Evrak No'),
+                _buildSearchTypeButton(context, 'ozelKod1', 'Özel Kod 1'),
+                _buildSearchTypeButton(context, 'aciklama', 'Açıklama'),
+              ],
             ),
-            value: Provider.of<SayimData>(context).searchType,
-            items: [
-              DropdownMenuItem(value: 'barkod', child: Text('Barkod')),
-              DropdownMenuItem(value: 'miktar', child: Text('Miktar')),
-              DropdownMenuItem(value: 'urunAdi', child: Text('Ürün Adı')),
-            ],
-            onChanged: (String? value) {
-              if (value != null) {
-                Provider.of<SayimData>(context, listen: false).searchType = value;
-                Provider.of<SayimData>(context, listen: false).searchText = '';
-              }
-            },
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 12),
           TextField(
             decoration: InputDecoration(
               labelText: 'Ara',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
+              hintText: 'Aranacak kelimeyi girin',
+              prefixIcon: Icon(Icons.search, color: Colors.red),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.red),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.red, width: 2),
+              ),
             ),
             onChanged: (value) {
               Provider.of<SayimData>(context, listen: false).searchText = value;
             },
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 16),
           Expanded(
             child: Consumer<SayimData>(
               builder: (context, sayimData, child) {
                 final filteredList = sayimData.filteredSayimListesi;
                 return filteredList.isNotEmpty
-                    ? ListView.builder(
-                        itemCount: filteredList.length,
-                        itemBuilder: (context, index) {
-                          final item = filteredList[index];
-                          return Card(
-                            child: ListTile(
-                              title: Text('${item.urunAdi ?? 'Ürün'} (${item.barkod})'),
-                              subtitle: Text('Miktar: ${item.miktar}'),
+                    ? ListView.separated(
+                      itemCount: filteredList.length,
+                      separatorBuilder:
+                          (context, index) =>
+                              Divider(height: 1, color: Colors.grey.shade400),
+                      itemBuilder: (context, index) {
+                        final item = filteredList[index];
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                spreadRadius: 1,
+                                blurRadius: 3,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ListTile(
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
                             ),
-                          );
-                        },
-                      )
+                            leading: Icon(
+                              Icons.shopping_cart,
+                              color: Colors.red,
+                            ),
+                            title: Text(
+                              '${item.urunAdi ?? 'Ürün'}',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Barkod: ${item.barkod}'),
+                                Text('Miktar: ${item.miktar}'),
+                                Text(
+                                  'Kaynak İşyeri: ${item.kaynakIsyeri ?? '-'}',
+                                ),
+                                Text('Fabrika: ${item.fabrika ?? '-'}'),
+                                Text(
+                                  'Kaynak Ambar: ${item.kaynakAmbar ?? '-'}',
+                                ),
+                                Text('Evrak No: ${item.evrakNo ?? '-'}'),
+                                Text('Özel Kod 1: ${item.ozelKod1 ?? '-'}'),
+                                Text('Açıklama: ${item.aciklama ?? '-'}'),
+                              ],
+                            ),
+                            trailing: Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        );
+                      },
+                    )
                     : Center(
-                        child: Text('Ürün Bulunamadı'),
-                      );
+                      child: Text(
+                        'Ürün Bulunamadı',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    );
               },
             ),
           ),
@@ -266,38 +412,117 @@ class _FisSayimEkraniState extends State<FisSayimEkrani>
     );
   }
 
+  Widget _buildSearchTypeButton(
+    BuildContext context,
+    String type,
+    String label,
+  ) {
+    final isSelected = Provider.of<SayimData>(context).searchType == type;
+    return ElevatedButton(
+      onPressed: () {
+        Provider.of<SayimData>(context, listen: false).searchType = type;
+        Provider.of<SayimData>(context, listen: false).searchText = '';
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isSelected ? Colors.red[700] : Colors.white,
+        foregroundColor: isSelected ? Colors.white : Colors.black87,
+        side: BorderSide(color: Colors.red.shade200),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+      child: Text(label, style: TextStyle(fontWeight: FontWeight.w500)),
+    );
+  }
+
   Widget listeTab(BuildContext context) {
     return Consumer<SayimData>(
       builder: (context, sayimData, child) {
-        return ListView.builder(
-          itemCount: sayimData.sayimListesi.length,
-          itemBuilder: (context, index) {
-            final item = sayimData.sayimListesi[index];
-            return Dismissible(
-              key: Key(item.barkod + index.toString()),
-              onDismissed: (_) => sayimData.sayimSil(index),
-              background: Container(color: Colors.red),
-              child: ListTile(
-                title: Text('${item.urunAdi ?? 'Ürün'} (${item.barkod})'),
-                subtitle: Text('Miktar: ${item.miktar}'),
-                trailing: IconButton(
-                  icon: Icon(Icons.edit),
-                  onPressed: () => _showEditDialog(context, index, item.miktar),
-                ),
+        return sayimData.sayimListesi.isNotEmpty
+            ? ListView.separated(
+              itemCount: sayimData.sayimListesi.length,
+              separatorBuilder:
+                  (context, index) =>
+                      Divider(height: 1, color: Colors.grey.shade400),
+              padding: EdgeInsets.all(12),
+              itemBuilder: (context, index) {
+                final item = sayimData.sayimListesi[index];
+                return Dismissible(
+                  key: Key(item.barkod + index.toString()),
+                  onDismissed: (_) => sayimData.sayimSil(index),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.centerRight,
+                    padding: EdgeInsets.only(right: 20.0),
+                    child: Icon(Icons.delete, color: Colors.white),
+                  ),
+                  child: ProductListItem(item: item, index: index),
+                );
+              },
+            )
+            : Center(
+              child: Text(
+                'Henüz fiş eklenmedi.',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             );
-          },
-        );
       },
     );
   }
 
   Widget toplamTab(BuildContext context) {
     return Center(
-      child: Consumer<SayimData>(
-        builder: (context, data, _) => Text(
-          'Toplam: ${data.toplamMiktar.toStringAsFixed(2)}',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      child: Container(
+        padding: EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Toplam Miktar',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+            SizedBox(height: 12),
+            Consumer<SayimData>(
+              builder:
+                  (context, data, _) => Text(
+                    '${data.toplamMiktar.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Toplam sayılan fiş miktarı.',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -306,89 +531,119 @@ class _FisSayimEkraniState extends State<FisSayimEkrani>
   void _showAddSayimDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Yeni Fiş Ekle'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: barkodController,
-              decoration: InputDecoration(hintText: 'Barkod'),
+      builder:
+          (context) => AlertDialog(
+            title: Text(
+              'Yeni Fiş Ekle',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            TextField(
-              controller: miktarController,
-              decoration: InputDecoration(hintText: 'Miktar'),
-            ),
-            TextField(
-              controller: urunAdiController,
-              decoration: InputDecoration(hintText: 'Ürün Adı (opsiyonel)'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              barkodController.clear();
-              miktarController.clear();
-              urunAdiController.clear();
-              Navigator.pop(context);
-            },
-            child: Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () {
-              final barkod = barkodController.text;
-              final miktar = miktarController.text;
-              final urunAdi = urunAdiController.text;
-              if (barkod.isNotEmpty && miktar.isNotEmpty) {
-                Provider.of<SayimData>(context, listen: false).sayimEkle(
-                  SayimModel(
-                    barkod: barkod,
-                    miktar: miktar,
-                    urunAdi: urunAdi,
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: barkodController,
+                    decoration: InputDecoration(labelText: 'Barkod'),
                   ),
-                );
-                barkodController.clear();
-                miktarController.clear();
-                urunAdiController.clear();
-                Navigator.pop(context);
-              }
-            },
-            child: Text('Ekle'),
+                  TextField(
+                    controller: miktarController,
+                    decoration: InputDecoration(labelText: 'Miktar'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  TextField(
+                    controller: urunAdiController,
+                    decoration: InputDecoration(
+                      labelText: 'Ürün Adı (opsiyonel)',
+                    ),
+                  ),
+                  TextField(
+                    controller: kaynakIsyeriController,
+                    decoration: InputDecoration(labelText: 'Kaynak İşyeri'),
+                  ),
+                  TextField(
+                    controller: fabrikaController,
+                    decoration: InputDecoration(labelText: 'Fabrika'),
+                  ),
+                  TextField(
+                    controller: kaynakAmbarController,
+                    decoration: InputDecoration(labelText: 'Kaynak Ambar'),
+                  ),
+                  TextField(
+                    controller: evrakNoController,
+                    decoration: InputDecoration(labelText: 'Evrak No'),
+                  ),
+                  TextField(
+                    controller: ozelKod1Controller,
+                    decoration: InputDecoration(labelText: 'Özel Kod 1'),
+                  ),
+                  TextField(
+                    controller: aciklamaController,
+                    decoration: InputDecoration(labelText: 'Açıklama'),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _clearControllers();
+                },
+                child: Text(
+                  'İptal',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final barkod = barkodController.text;
+                  final miktar = miktarController.text;
+                  if (barkod.isNotEmpty && miktar.isNotEmpty) {
+                    _addSayim(context, barkod, miktar);
+                    Navigator.pop(context);
+                    _clearControllers();
+                  }
+                },
+                child: Text(
+                  'Ekle',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
           ),
-        ],
+    );
+  }
+
+  void _addSayim(BuildContext context, String barkod, String miktar) {
+    Provider.of<SayimData>(context, listen: false).sayimEkle(
+      SayimModel(
+        barkod: barkod,
+        miktar: miktar,
+        urunAdi: urunAdiController.text,
+        kaynakIsyeri: kaynakIsyeriController.text,
+        fabrika: fabrikaController.text,
+        kaynakAmbar: kaynakAmbarController.text,
+        tarihSaat: DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+        evrakNo: evrakNoController.text,
+        ozelKod1: ozelKod1Controller.text,
+        aciklama: aciklamaController.text,
       ),
     );
   }
 
-  void _showEditDialog(BuildContext context, int index, String mevcutMiktar) {
-    TextEditingController editController = TextEditingController(text: mevcutMiktar);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Miktar Güncelle'),
-        content: TextField(
-          controller: editController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(hintText: 'Yeni Miktar'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (editController.text.isNotEmpty) {
-                Provider.of<SayimData>(context, listen: false).sayimGuncelle(index, editController.text);
-                Navigator.pop(context);
-              }
-            },
-            child: Text('Güncelle'),
-          ),
-        ],
-      ),
-    );
+  void _clearControllers() {
+    barkodController.clear();
+    miktarController.clear();
+    urunAdiController.clear();
+    kaynakIsyeriController.clear();
+    fabrikaController.clear();
+    kaynakAmbarController.clear();
+    evrakNoController.clear();
+    ozelKod1Controller.clear();
+    aciklamaController.clear();
   }
 }
 
@@ -396,51 +651,396 @@ class UrunEkleSayfasi extends StatelessWidget {
   final TextEditingController barkodController = TextEditingController();
   final TextEditingController miktarController = TextEditingController();
   final TextEditingController urunAdiController = TextEditingController();
+  final TextEditingController kaynakIsyeriController = TextEditingController();
+  final TextEditingController fabrikaController = TextEditingController();
+  final TextEditingController kaynakAmbarController = TextEditingController();
+  final TextEditingController evrakNoController = TextEditingController();
+  final TextEditingController ozelKod1Controller = TextEditingController();
+  final TextEditingController aciklamaController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Ürün Ekle')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: barkodController,
-              decoration: InputDecoration(labelText: 'Barkod'),
-            ),
-            TextField(
-              controller: miktarController,
-              decoration: InputDecoration(labelText: 'Miktar'),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: urunAdiController,
-              decoration: InputDecoration(labelText: 'Ürün Adı (opsiyonel)'),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                final barkod = barkodController.text;
-                final miktar = miktarController.text;
-                final urunAdi = urunAdiController.text;
-
-                if (barkod.isNotEmpty && miktar.isNotEmpty) {
-                  Provider.of<SayimData>(context, listen: false).sayimEkle(
-                    SayimModel(
-                      barkod: barkod,
-                      miktar: miktar,
-                      urunAdi: urunAdi,
-                    ),
-                  );
-                  Navigator.pop(context);
-                }
-              },
-              child: Text('Ekle'),
-            ),
-          ],
+      appBar: AppBar(
+        title: Text(
+          'Ürün Ekle',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.red[700],
+      ),
+      body: Container(
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.white, Colors.red.shade100],
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: barkodController,
+                decoration: InputDecoration(
+                  labelText: 'Barkod',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextFormField(
+                controller: miktarController,
+                decoration: InputDecoration(
+                  labelText: 'Miktar',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              SizedBox(height: 12),
+              TextFormField(
+                controller: urunAdiController,
+                decoration: InputDecoration(
+                  labelText: 'Ürün Adı (opsiyonel)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextFormField(
+                controller: kaynakIsyeriController,
+                decoration: InputDecoration(
+                  labelText: 'Kaynak İşyeri',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextFormField(
+                controller: fabrikaController,
+                decoration: InputDecoration(
+                  labelText: 'Fabrika',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextFormField(
+                controller: kaynakAmbarController,
+                decoration: InputDecoration(
+                  labelText: 'Kaynak Ambar',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextFormField(
+                controller: evrakNoController,
+                decoration: InputDecoration(
+                  labelText: 'Evrak No',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextFormField(
+                controller: ozelKod1Controller,
+                decoration: InputDecoration(
+                  labelText: 'Özel Kod 1',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextFormField(
+                controller: aciklamaController,
+                decoration: InputDecoration(
+                  labelText: 'Açıklama',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[700],
+                  padding: EdgeInsets.symmetric(vertical: 15),
+                  textStyle: TextStyle(fontSize: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () {
+                  final barkod = barkodController.text;
+                  final miktar = miktarController.text;
+                  if (barkod.isNotEmpty && miktar.isNotEmpty) {
+                    Provider.of<SayimData>(context, listen: false).sayimEkle(
+                      SayimModel(
+                        barkod: barkod,
+                        miktar: miktar,
+                        urunAdi: urunAdiController.text,
+                        kaynakIsyeri: kaynakIsyeriController.text,
+                        fabrika: fabrikaController.text,
+                        kaynakAmbar: kaynakAmbarController.text,
+                        tarihSaat: DateFormat(
+                          'yyyy-MM-dd HH:mm:ss',
+                        ).format(DateTime.now()),
+                        evrakNo: evrakNoController.text,
+                        ozelKod1: ozelKod1Controller.text,
+                        aciklama: aciklamaController.text,
+                      ),
+                    );
+                    Navigator.pop(context);
+                  }
+                },
+                child: Text(
+                  'Ürünü Ekle',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+}
+
+class ProductListItem extends StatefulWidget {
+  final SayimModel item;
+  final int index;
+
+  const ProductListItem({Key? key, required this.item, required this.index})
+    : super(key: key);
+
+  @override
+  _ProductListItemState createState() => _ProductListItemState();
+}
+
+class _ProductListItemState extends State<ProductListItem> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ExpansionTile(
+        onExpansionChanged: (bool expanded) {
+          setState(() => _isExpanded = expanded);
+        },
+        leading: Icon(Icons.assignment, color: Colors.red),
+        title: RichText(
+          text: TextSpan(
+            style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black),
+            children: [
+              TextSpan(
+                text: 'Ürün Adı: ${widget.item.urunAdi ?? 'Ürün'}\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              TextSpan(
+                text: 'Barkod: ${widget.item.barkod}\n',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              TextSpan(text: 'Miktar: ${widget.item.miktar}'),
+            ],
+          ),
+        ),
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Kaynak İşyeri: ${widget.item.kaynakIsyeri ?? '-'}'),
+                Text('Fabrika: ${widget.item.fabrika ?? '-'}'),
+                Text('Kaynak Ambar: ${widget.item.kaynakAmbar ?? '-'}'),
+                Text('Tarih: ${widget.item.tarihSaat}'),
+                Text('Evrak No: ${widget.item.evrakNo ?? '-'}'),
+                Text('Özel Kod 1: ${widget.item.ozelKod1 ?? '-'}'),
+                Text('Açıklama: ${widget.item.aciklama ?? '-'}'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.edit, color: Colors.blue),
+                      onPressed:
+                          () => _showEditDialog(
+                            context,
+                            widget.index,
+                            widget.item,
+                          ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditDialog(
+    BuildContext context,
+    int index,
+    SayimModel mevcutModel,
+  ) {
+    final barkodController = TextEditingController(text: mevcutModel.barkod);
+    final miktarController = TextEditingController(text: mevcutModel.miktar);
+    final urunAdiController = TextEditingController(text: mevcutModel.urunAdi);
+    final kaynakIsyeriController = TextEditingController(
+      text: mevcutModel.kaynakIsyeri,
+    );
+    final fabrikaController = TextEditingController(text: mevcutModel.fabrika);
+    final kaynakAmbarController = TextEditingController(
+      text: mevcutModel.kaynakAmbar,
+    );
+    final evrakNoController = TextEditingController(text: mevcutModel.evrakNo);
+    final ozelKod1Controller = TextEditingController(
+      text: mevcutModel.ozelKod1,
+    );
+    final aciklamaController = TextEditingController(
+      text: mevcutModel.aciklama,
+    );
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(
+              'Fiş Güncelle',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: barkodController,
+                    decoration: InputDecoration(labelText: 'Barkod'),
+                  ),
+                  TextField(
+                    controller: miktarController,
+                    decoration: InputDecoration(labelText: 'Miktar'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  TextField(
+                    controller: urunAdiController,
+                    decoration: InputDecoration(
+                      labelText: 'Ürün Adı (opsiyonel)',
+                    ),
+                  ),
+                  TextField(
+                    controller: kaynakIsyeriController,
+                    decoration: InputDecoration(labelText: 'Kaynak İşyeri'),
+                  ),
+                  TextField(
+                    controller: fabrikaController,
+                    decoration: InputDecoration(labelText: 'Fabrika'),
+                  ),
+                  TextField(
+                    controller: kaynakAmbarController,
+                    decoration: InputDecoration(labelText: 'Kaynak Ambar'),
+                  ),
+                  TextField(
+                    controller: evrakNoController,
+                    decoration: InputDecoration(labelText: 'Evrak No'),
+                  ),
+                  TextField(
+                    controller: ozelKod1Controller,
+                    decoration: InputDecoration(labelText: 'Özel Kod 1'),
+                  ),
+                  TextField(
+                    controller: aciklamaController,
+                    decoration: InputDecoration(labelText: 'Açıklama'),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'İptal',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Provider.of<SayimData>(
+                    context,
+                    listen: false,
+                  ).sayimSil(index);
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  'Ürünü Sil',
+                  style: TextStyle(fontSize: 16, color: Colors.red),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final barkod = barkodController.text;
+                  final miktar = miktarController.text;
+                  if (barkod.isNotEmpty && miktar.isNotEmpty) {
+                    final updatedModel = SayimModel(
+                      barkod: barkod,
+                      miktar: miktar,
+                      urunAdi: urunAdiController.text,
+                      kaynakIsyeri: kaynakIsyeriController.text,
+                      fabrika: fabrikaController.text,
+                      kaynakAmbar: kaynakAmbarController.text,
+                      tarihSaat: mevcutModel.tarihSaat,
+                      evrakNo: evrakNoController.text,
+                      ozelKod1: ozelKod1Controller.text,
+                      aciklama: aciklamaController.text,
+                      imageUrl: mevcutModel.imageUrl,
+                    );
+                    Provider.of<SayimData>(
+                      context,
+                      listen: false,
+                    ).sayimGuncelle(index, updatedModel);
+                    Navigator.pop(context);
+                  }
+                },
+                child: Text(
+                  'Güncelle',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+      );
   }
 }
