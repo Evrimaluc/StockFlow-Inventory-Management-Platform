@@ -865,6 +865,15 @@ class _ProductListItemState extends State<ProductListItem> {
 
   @override
   Widget build(BuildContext context) {
+    Color? barkodColor;
+    if (widget.item.barkod.startsWith('y')) {
+      barkodColor = Colors.green;
+    } else if (widget.item.barkod.startsWith('x')) {
+      barkodColor = Colors.red;
+    } else {
+      barkodColor = Colors.black;
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -905,7 +914,7 @@ class _ProductListItemState extends State<ProductListItem> {
                 text: 'Barkod: ${widget.item.barkod}\n',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.red,
+                  color: barkodColor,
                 ),
               ),
               TextSpan(text: 'Miktar: ${widget.item.miktar}'),
@@ -996,9 +1005,7 @@ class _ProductListItemState extends State<ProductListItem> {
                   ),
                   TextField(
                     controller: urunAdiController,
-                    decoration: InputDecoration(
-                      labelText: 'Ürün Adı',
-                    ),
+                    decoration: InputDecoration(labelText: 'Ürün Adı'),
                   ),
                   TextField(
                     controller: kaynakIsyeriController,
@@ -1035,7 +1042,7 @@ class _ProductListItemState extends State<ProductListItem> {
                   style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               ),
-              TextButton(
+                      TextButton(
                 onPressed: () {
                   Provider.of<SayimData>(
                     context,
