@@ -60,6 +60,7 @@ class SayimData extends ChangeNotifier {
   List<SayimModel> _sayimListesi = [];
   String _searchText = '';
   String _searchType = 'barkod';
+  int? _selectedSayimIndex;
 
   List<SayimModel> get sayimListesi => _sayimListesi;
 
@@ -74,6 +75,13 @@ class SayimData extends ChangeNotifier {
 
   set searchType(String value) {
     _searchType = value;
+    notifyListeners();
+  }
+
+  int? get selectedSayimIndex => _selectedSayimIndex;
+
+  set selectedSayimIndex(int? value) {
+    _selectedSayimIndex = value;
     notifyListeners();
   }
 
@@ -350,52 +358,58 @@ class _FisSayimEkraniState extends State<FisSayimEkrani>
                               Divider(height: 1, color: Colors.grey.shade400),
                       itemBuilder: (context, index) {
                         final item = filteredList[index];
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.2),
-                                spreadRadius: 1,
-                                blurRadius: 3,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            leading: Icon(
-                              Icons.shopping_cart,
-                              color: Colors.red,
-                            ),
-                            title: Text(
-                              '${item.urunAdi ?? 'Ürün'}',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Barkod: ${item.barkod}'),
-                                Text('Miktar: ${item.miktar}'),
-                                Text(
-                                  'Kaynak İşyeri: ${item.kaynakIsyeri ?? '-'}',
+                        return GestureDetector(
+                          onTap: () {
+                            sayimData.selectedSayimIndex = index;
+                            _tabController.animateTo(1);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  spreadRadius: 1,
+                                  blurRadius: 3,
+                                  offset: Offset(0, 2),
                                 ),
-                                Text('Fabrika: ${item.fabrika ?? '-'}'),
-                                Text(
-                                  'Kaynak Ambar: ${item.kaynakAmbar ?? '-'}',
-                                ),
-                                Text('Evrak No: ${item.evrakNo ?? '-'}'),
-                                Text('Özel Kod 1: ${item.ozelKod1 ?? '-'}'),
-                                Text('Açıklama: ${item.aciklama ?? '-'}'),
                               ],
                             ),
-                            trailing: Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.grey,
+                            child: ListTile(
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              leading: Icon(
+                                Icons.shopping_cart,
+                                color: Colors.red,
+                              ),
+                              title: Text(
+                                '${item.urunAdi ?? 'Ürün'}',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Barkod: ${item.barkod}'),
+                                  Text('Miktar: ${item.miktar}'),
+                                  Text(
+                                    'Kaynak İşyeri: ${item.kaynakIsyeri ?? '-'}',
+                                  ),
+                                  Text('Fabrika: ${item.fabrika ?? '-'}'),
+                                  Text(
+                                    'Kaynak Ambar: ${item.kaynakAmbar ?? '-'}',
+                                  ),
+                                  Text('Evrak No: ${item.evrakNo ?? '-'}'),
+                                  Text('Özel Kod 1: ${item.ozelKod1 ?? '-'}'),
+                                  Text('Açıklama: ${item.aciklama ?? '-'}'),
+                                ],
+                              ),
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
                         );
@@ -462,7 +476,11 @@ class _FisSayimEkraniState extends State<FisSayimEkrani>
                     padding: EdgeInsets.only(right: 20.0),
                     child: Icon(Icons.delete, color: Colors.white),
                   ),
-                  child: ProductListItem(item: item, index: index),
+                  child: ProductListItem(
+                    item: item,
+                    index: index,
+                    isExpanded: sayimData.selectedSayimIndex == index,
+                  ),
                 );
               },
             )
@@ -556,7 +574,7 @@ class _FisSayimEkraniState extends State<FisSayimEkrani>
                   TextField(
                     controller: urunAdiController,
                     decoration: InputDecoration(
-                      labelText: 'Ürün Adı',
+                      labelText: 'Ürün Adı (opsiyonel)',
                     ),
                   ),
                   TextField(
@@ -823,9 +841,14 @@ class UrunEkleSayfasi extends StatelessWidget {
 class ProductListItem extends StatefulWidget {
   final SayimModel item;
   final int index;
+  final bool isExpanded;
 
-  const ProductListItem({Key? key, required this.item, required this.index})
-    : super(key: key);
+  const ProductListItem({
+    Key? key,
+    required this.item,
+    required this.index,
+    this.isExpanded = false,
+  }) : super(key: key);
 
   @override
   _ProductListItemState createState() => _ProductListItemState();
@@ -833,6 +856,12 @@ class ProductListItem extends StatefulWidget {
 
 class _ProductListItemState extends State<ProductListItem> {
   bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.isExpanded;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -850,8 +879,18 @@ class _ProductListItemState extends State<ProductListItem> {
         ],
       ),
       child: ExpansionTile(
+        initiallyExpanded: _isExpanded,
         onExpansionChanged: (bool expanded) {
-          setState(() => _isExpanded = expanded);
+          setState(() {
+            _isExpanded = expanded;
+          });
+          if (expanded) {
+            Provider.of<SayimData>(context, listen: false).selectedSayimIndex =
+                widget.index;
+          } else {
+            Provider.of<SayimData>(context, listen: false).selectedSayimIndex =
+                null;
+          }
         },
         leading: Icon(Icons.assignment, color: Colors.red),
         title: RichText(
@@ -958,7 +997,7 @@ class _ProductListItemState extends State<ProductListItem> {
                   TextField(
                     controller: urunAdiController,
                     decoration: InputDecoration(
-                      labelText: 'Ürün Adı (opsiyonel)',
+                      labelText: 'Ürün Adı',
                     ),
                   ),
                   TextField(
@@ -1009,7 +1048,7 @@ class _ProductListItemState extends State<ProductListItem> {
                   style: TextStyle(fontSize: 16, color: Colors.red),
                 ),
               ),
-              ElevatedButton(
+                 ElevatedButton(
                 onPressed: () {
                   final barkod = barkodController.text;
                   final miktar = miktarController.text;
