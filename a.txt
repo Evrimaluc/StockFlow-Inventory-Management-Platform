@@ -1,0 +1,29 @@
+import graphviz
+
+# React ve JavaScript'te "this" kullanım alanlarını görselleştiren bir diyagram
+dot = graphviz.Digraph(comment='JavaScript ve React’te "this"')
+
+dot.attr(rankdir='LR', size='10')
+
+# Temel this kavramı
+dot.node('A', '"this" Bağlama Göre Davranır')
+
+# JavaScript Kullanım Alanları
+dot.node('B1', 'Global Scope\n(this → window/global)')
+dot.node('B2', 'Nesne Metodu\n(this → nesne)')
+dot.node('B3', 'Constructor Fonksiyon\n(this → yeni nesne)')
+dot.node('B4', 'Normal Fonksiyon\n(this → undefined/window)')
+dot.node('B5', 'Arrow Function\n(this → dış bağlam)')
+
+# React Kullanım Alanları
+dot.node('C1', 'React Class Bileşeni\n(this → bileşen instance\'ı)')
+dot.node('C2', 'Event Handler\n(this → bind gerekebilir)')
+dot.node('C3', 'Arrow Function ile Event Handler\n(this otomatik bağlanır)')
+
+# Bağlantılar
+dot.edges([
+    ('A', 'B1'), ('A', 'B2'), ('A', 'B3'), ('A', 'B4'), ('A', 'B5'),
+    ('A', 'C1'), ('C1', 'C2'), ('C1', 'C3')
+])
+
+dot.render(format='png', filename='this_usage_diagram', cleanup=False)
