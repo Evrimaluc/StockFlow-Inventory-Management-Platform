@@ -8,15 +8,12 @@
   --color-autumn-bg: #f4e3b2;    /* Krem Turuncu Ana Arka Plan */
   --color-autumn-card: #e5a96a;  /* Karamel Kutular ve Kartlar */
   
-  /* --- Yazı Rengi --- */
   --color-autumn-text: #3D1C02;  /* Koyu Kahve Başlık ve Yazılar */
   
-  /* --- Vurgu Renkleri --- */
   --color-autumn-red: #ed3419;    /* Gider (X) */
   --color-autumn-orange: #E19B02; /* Gelir (Y) */
   --color-autumn-yellow: #DEB228; /* İkincil Vurgu */
   --color-accent: #ed3419;        /* TUIEVOLUTION gradyanı için */
 }
 
-/* Sadece Açık Tema Kullanılacak */
 :root { color-scheme: light; }
