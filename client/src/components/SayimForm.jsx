@@ -1,90 +1,70 @@
 import { useState, useContext, useEffect } from 'react';
 import { SayimContext } from '../context/SayimContext';
 
-const SayimForm = () => {
-  const { isFormOpen, setIsFormOpen, editingItem, setEditingItem, sayimEkle, sayimGuncelle } = useContext(SayimContext);
+const SayimForm = ({ currentMonth, currentYear }) => {
+  const { isFormOpen, setIsFormOpen, sayimEkle, sayimGuncelle, editingItem, setEditingItem } = useContext(SayimContext);
 
-  const [formData, setFormData] = useState({
-    barkod: '', miktar: '', urunAdi: '', kaynakIsyeri: '', fabrika: '', kaynakAmbar: '', evrakNo: '', ozelKod1: '', aciklama: ''
-  });
+  const varsayilanState = { islemTipi: 'x', urunAdi: '', miktar: '', birimFiyat: '', kaynakIsyeri: '', fabrika: '', aciklama: '' };
+  const [formData, setFormData] = useState(varsayilanState);
 
   useEffect(() => {
-    if (editingItem) {
-      setFormData(editingItem); // Güncelleme moduysa mevcut verileri doldur
-    } else {
-      setFormData({ barkod: '', miktar: '', urunAdi: '', kaynakIsyeri: '', fabrika: '', kaynakAmbar: '', evrakNo: '', ozelKod1: '', aciklama: '' });
-    }
-  }, [editingItem]);
-
-  if (!isFormOpen) return null;
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+    if (editingItem) setFormData(editingItem);
+    else setFormData(varsayilanState);
+  }, [editingItem, isFormOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.barkod || !formData.miktar) return alert("Barkod ve Miktar zorunludur!");
-
-    if (editingItem) {
-      sayimGuncelle(editingItem._id, formData);
-    } else {
-      sayimEkle(formData);
-    }
+    if (!formData.urunAdi || !formData.miktar || !formData.birimFiyat) return alert("Lütfen zorunlu alanları doldurun.");
+    
+    if (editingItem) sayimGuncelle(editingItem._id, formData);
+    else sayimEkle(formData);
+    
     kapatForm();
   };
 
   const kapatForm = () => {
     setIsFormOpen(false);
-    setEditingItem(null);
+    setEditingItem(null); 
   };
 
-  const inputs = [
-    { name: 'barkod', label: 'Barkod *', type: 'text', required: true },
-    { name: 'miktar', label: 'Miktar *', type: 'number', required: true },
-    { name: 'urunAdi', label: 'Ürün Adı', type: 'text' },
-    { name: 'kaynakIsyeri', label: 'Kaynak İşyeri', type: 'text' },
-    { name: 'fabrika', label: 'Fabrika', type: 'text' },
-    { name: 'kaynakAmbar', label: 'Kaynak Ambar', type: 'text' },
-    { name: 'evrakNo', label: 'Evrak No', type: 'text' },
-    { name: 'ozelKod1', label: 'Özel Kod 1', type: 'text' },
-    { name: 'aciklama', label: 'Açıklama', type: 'text' },
-  ];
+  if (!isFormOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="bg-red-700 text-white p-4">
-          <h2 className="text-xl font-bold">{editingItem ? 'Fiş Güncelle' : 'Yeni Fiş Ekle'}</h2>
+      <form onSubmit={handleSubmit} className="bg-autumn-card p-6 rounded-xl w-full max-w-lg shadow-2xl font-sans text-autumn-text border-2 border-autumn-rufous/50">
+        <h2 className="text-2xl font-bold mb-4 border-b-2 pb-2 border-autumn-rufous">
+          {editingItem ? 'İşlemi Düzenle' : `Yeni İşlem Ekle (${currentMonth}/${currentYear})`}
+        </h2>
+        
+        {!editingItem && (
+          <div className="flex gap-4 mb-5 p-2 bg-autumn-bg rounded-lg shadow-inner">
+            <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-autumn-red/10 rounded">
+              <input type="radio" name="islemTipi" value="x" checked={formData.islemTipi === 'x'} onChange={e => setFormData({...formData, islemTipi: e.target.value})} className="accent-autumn-red w-5 h-5"/>
+              <span className="text-autumn-red font-bold text-sm">Harcama/Alım (X)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-green-600/10 rounded">
+              <input type="radio" name="islemTipi" value="y" checked={formData.islemTipi === 'y'} onChange={e => setFormData({...formData, islemTipi: e.target.value})} className="accent-green-700 w-5 h-5"/>
+              <span className="text-green-700 font-bold text-sm">Üretim/Satış (Y)</span>
+            </label>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <input required placeholder="Ürün Adı *" value={formData.urunAdi} className="col-span-2 p-3 rounded-lg border-2 border-autumn-rufous/30 bg-autumn-bg focus:ring-2 focus:ring-autumn-rufous outline-none font-medium placeholder-autumn-text/50" onChange={e => setFormData({...formData, urunAdi: e.target.value})} />
+          <input required type="number" placeholder="Miktar *" value={formData.miktar} className="p-3 rounded-lg border-2 border-autumn-rufous/30 bg-autumn-bg focus:ring-2 focus:ring-autumn-rufous outline-none font-medium placeholder-autumn-text/50" onChange={e => setFormData({...formData, miktar: e.target.value})} />
+          <input required type="number" placeholder="Birim Fiyat (₺) *" value={formData.birimFiyat} className="p-3 rounded-lg border-2 border-autumn-rufous/30 bg-autumn-bg focus:ring-2 focus:ring-autumn-rufous outline-none font-medium placeholder-autumn-text/50" onChange={e => setFormData({...formData, birimFiyat: e.target.value})} />
+          <input placeholder="Kaynak İşyeri" value={formData.kaynakIsyeri} className="p-3 rounded-lg border-2 border-autumn-rufous/30 bg-autumn-bg focus:ring-2 focus:ring-autumn-rufous outline-none font-medium placeholder-autumn-text/50" onChange={e => setFormData({...formData, kaynakIsyeri: e.target.value})} />
+          <input placeholder="Fabrika/Ambar" value={formData.fabrika} className="p-3 rounded-lg border-2 border-autumn-rufous/30 bg-autumn-bg focus:ring-2 focus:ring-autumn-rufous outline-none font-medium placeholder-autumn-text/50" onChange={e => setFormData({...formData, fabrika: e.target.value})} />
+          <input placeholder="Açıklama" value={formData.aciklama} className="col-span-2 p-3 rounded-lg border-2 border-autumn-rufous/30 bg-autumn-bg focus:ring-2 focus:ring-autumn-rufous outline-none font-medium placeholder-autumn-text/50" onChange={e => setFormData({...formData, aciklama: e.target.value})} />
         </div>
         
-        <div className="p-6 overflow-y-auto">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {inputs.map((input) => (
-              <div key={input.name}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{input.label}</label>
-                <input
-                  type={input.type}
-                  name={input.name}
-                  value={formData[input.name] || ''}
-                  onChange={handleChange}
-                  required={input.required}
-                  className="w-full p-2 bg-gray-100 border-none rounded-md focus:ring-2 focus:ring-red-500 outline-none"
-                />
-              </div>
-            ))}
-          </form>
-        </div>
-
-        <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
-          <button onClick={kapatForm} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-md font-medium transition">
-            İptal
-          </button>
-          <button onClick={handleSubmit} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-medium transition">
-            {editingItem ? 'Güncelle' : 'Ekle'}
+        <div className="flex justify-end gap-3 mt-6 border-t-2 border-autumn-rufous/20 pt-4">
+          <button type="button" onClick={kapatForm} className="px-5 py-2.5 bg-autumn-bg text-autumn-text rounded-lg hover:bg-white font-bold shadow-sm">İptal</button>
+          <button type="submit" className="px-5 py-2.5 bg-autumn-rufous text-white rounded-lg hover:bg-autumn-red font-bold shadow-sm">
+            {editingItem ? 'Güncelle' : 'Kaydet'}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 };

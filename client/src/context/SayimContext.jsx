@@ -5,52 +5,58 @@ export const SayimContext = createContext();
 
 export const SayimProvider = ({ children }) => {
   const [sayimListesi, setSayimListesi] = useState([]);
-  const [searchText, setSearchText] = useState('');
-  const [searchType, setSearchType] = useState('barkod');
+  const [arsivVerileri, setArsivVerileri] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(true); 
   
-  // Form/Modal yönetimi için stateler
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null); // Null ise ekleme, doluysa güncelleme modu
+  const [editingItem, setEditingItem] = useState(null);
 
   const fetchVeriler = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/sayim');
+      const arsivRes = await axios.get('http://localhost:5000/api/archive');
       setSayimListesi(res.data);
-    } catch (error) {
-      console.error("Veri çekme hatası:", error);
-    }
+      setArsivVerileri(arsivRes.data);
+    } catch (error) { console.error("Veri çekme hatası:", error); }
   };
 
   useEffect(() => { fetchVeriler(); }, []);
 
   const sayimEkle = async (yeniVeri) => {
-    const res = await axios.post('http://localhost:5000/api/sayim', yeniVeri);
-    setSayimListesi([res.data, ...sayimListesi]);
+    try {
+      await axios.post('http://localhost:5000/api/sayim', yeniVeri);
+      await fetchVeriler(); // YENİ: UI güncellenmesi için bekleniyor
+      return true;
+    } catch (error) { 
+      console.error("Veri ekleme hatası:", error);
+      alert("Hata oluştu: " + (error.response?.data?.error || "Sunucu hatası"));
+      return false;
+    }
   };
 
   const sayimSil = async (id) => {
-    await axios.delete(`http://localhost:5000/api/sayim/${id}`);
-    setSayimListesi(sayimListesi.filter(item => item._id !== id));
+    try {
+      await axios.delete(`http://localhost:5000/api/sayim/${id}`);
+      await fetchVeriler(); // YENİ: Anında tüm sayfalardan silinmesi için bekleniyor
+    } catch (error) { console.error("Veri silme hatası:", error); }
   };
 
   const sayimGuncelle = async (id, guncelVeri) => {
-    const res = await axios.put(`http://localhost:5000/api/sayim/${id}`, guncelVeri);
-    setSayimListesi(sayimListesi.map(item => item._id === id ? res.data : item));
+    try {
+      await axios.put(`http://localhost:5000/api/sayim/${id}`, guncelVeri);
+      await fetchVeriler(); // YENİ: Bekleniyor
+      return true;
+    } catch (error) { 
+      console.error("Güncelleme hatası:", error); 
+      alert("Hata oluştu: " + (error.response?.data?.error || "Sunucu hatası"));
+      return false;
+    }
   };
-
-  const toplamMiktar = sayimListesi.reduce((sum, item) => sum + Number(item.miktar || 0), 0);
-
-  const filteredSayimListesi = sayimListesi.filter(item => {
-    if (!searchText) return true;
-    const val = item[searchType] ? String(item[searchType]).toLowerCase() : '';
-    return searchType === 'barkod' ? val.startsWith(searchText.toLowerCase()) : val.includes(searchText.toLowerCase());
-  });
 
   return (
     <SayimContext.Provider value={{
-      sayimListesi, filteredSayimListesi, sayimEkle, sayimSil, sayimGuncelle,
-      searchText, setSearchText, searchType, setSearchType, toplamMiktar,
-      isFormOpen, setIsFormOpen, editingItem, setEditingItem
+      sayimListesi, arsivVerileri, sayimEkle, sayimSil, sayimGuncelle, fetchVeriler,
+      isAdmin, isFormOpen, setIsFormOpen, editingItem, setEditingItem
     }}>
       {children}
     </SayimContext.Provider>

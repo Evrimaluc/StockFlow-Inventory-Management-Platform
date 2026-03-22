@@ -1,55 +1,123 @@
 import { useState, useContext } from 'react';
 import { SayimContext } from '../context/SayimContext';
-import { FaTrash, FaEdit, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaTrash, FaEdit, FaChevronDown, FaChevronUp, FaExclamationTriangle } from 'react-icons/fa';
 
-const ListItem = ({ item }) => {
+const ListItem = ({ item, isAdmin, currentMonth }) => {
   const { sayimSil, setIsFormOpen, setEditingItem } = useContext(SayimContext);
+  
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // YENİ: Silme onay penceresi için state
 
-  let barkodColor = 'text-gray-900';
-  if (item.barkod.toLowerCase().startsWith('y')) barkodColor = 'text-green-600';
-  else if (item.barkod.toLowerCase().startsWith('x')) barkodColor = 'text-red-600';
+  const isEski = new Date(item.tarihSaat).getMonth() + 1 !== currentMonth;
+  const borderClass = item.islemTipi === 'x' ? 'border-autumn-red' : 'border-green-600';
 
   const handleEdit = (e) => {
-    e.stopPropagation(); // Satırın açılıp kapanmasını engelle
+    e.stopPropagation();
     setEditingItem(item);
     setIsFormOpen(true);
   };
 
+  // Sil butonuna basıldığında sadece özel pencereyi aç
+  const handleDeleteClick = (e) => {
+    e.stopPropagation(); 
+    setIsDeleteModalOpen(true);
+  };
+
+  // Pencerde "Evet, Sil" e basılırsa
+  const confirmDelete = (e) => {
+    e.stopPropagation();
+    sayimSil(item._id);
+    setIsDeleteModalOpen(false);
+  };
+
+  // Pencerde "İptal" e basılırsa
+  const cancelDelete = (e) => {
+    e.stopPropagation();
+    setIsDeleteModalOpen(false);
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-3 overflow-hidden">
-      <div 
-        className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex flex-col">
-          <span className="font-bold text-gray-800">Ürün Adı: {item.urunAdi || 'Ürün'}</span>
-          <span className={`font-bold ${barkodColor}`}>Barkod: {item.barkod}</span>
-          <span className="text-gray-600">Miktar: {item.miktar}</span>
+    <>
+      <div className={`bg-autumn-card rounded-xl shadow-sm border-l-4 transition-colors hover:shadow-md mb-3 overflow-hidden ${borderClass}`}>
+        <div className="flex justify-between items-center p-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+          <div>
+            <h3 className="font-bold text-autumn-text">
+              {item.urunAdi} <span className="text-xs opacity-70">({item.barkod})</span>
+            </h3>
+            <p className="text-sm font-medium text-autumn-text mt-1">
+              Tutar: <span className="font-bold">₺{item.toplamTutar?.toLocaleString() || 0}</span> | Tarih: {new Date(item.tarihSaat).toLocaleDateString()}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {(!isEski || isAdmin) && (
+              <>
+                <button onClick={handleEdit} className="text-white hover:text-autumn-rufous transition-colors" title="Düzenle">
+                  <FaEdit size={18} />
+                </button>
+                {/* Olay handleDeleteClick'e bağlandı */}
+                <button onClick={handleDeleteClick} className="text-autumn-red hover:text-red-900 transition-colors" title="Sil">
+                  <FaTrash size={18} />
+                </button>
+              </>
+            )}
+            {isExpanded ? <FaChevronUp className="text-autumn-rufous" /> : <FaChevronDown className="text-autumn-rufous" />}
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button onClick={handleEdit} className="text-blue-500 hover:text-blue-700">
-            <FaEdit size={18} />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); sayimSil(item._id); }} className="text-red-500 hover:text-red-700">
-            <FaTrash size={18} />
-          </button>
-          {isExpanded ? <FaChevronUp className="text-gray-400" /> : <FaChevronDown className="text-gray-400" />}
-        </div>
+
+        {isExpanded && (
+          <div className="p-4 bg-autumn-bg/50 border-t border-autumn-rufous/20 text-sm flex flex-col gap-1 text-autumn-text font-medium">
+            <p><strong>Miktar:</strong> {item.miktar}</p>
+            <p><strong>Birim Fiyat:</strong> ₺{item.birimFiyat?.toLocaleString() || 0}</p>
+            <p><strong>Kaynak İşyeri:</strong> {item.kaynakIsyeri || '-'}</p>
+            <p><strong>Fabrika:</strong> {item.fabrika || '-'}</p>
+            <p><strong>Evrak No:</strong> {item.evrakNo || '-'}</p>
+            <p><strong>Özel Kod:</strong> {item.ozelKod1 || '-'}</p>
+            <p><strong>Açıklama:</strong> {item.aciklama || '-'}</p>
+          </div>
+        )}
       </div>
 
-      {isExpanded && (
-        <div className="p-4 bg-gray-50 border-t border-gray-100 text-sm flex flex-col gap-1">
-          <p><strong>Kaynak İşyeri:</strong> {item.kaynakIsyeri || '-'}</p>
-          <p><strong>Fabrika:</strong> {item.fabrika || '-'}</p>
-          <p><strong>Kaynak Ambar:</strong> {item.kaynakAmbar || '-'}</p>
-          <p><strong>Evrak No:</strong> {item.evrakNo || '-'}</p>
-          <p><strong>Özel Kod 1:</strong> {item.ozelKod1 || '-'}</p>
-          <p><strong>Açıklama:</strong> {item.aciklama || '-'}</p>
-          <p className="text-xs text-gray-400 mt-2 text-right">Tarih: {new Date(item.tarihSaat).toLocaleString()}</p>
+      {/* YENİ: ÖZEL SİLME ONAY PENCERESİ (MODAL) */}
+      {isDeleteModalOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 animate-fade-in" 
+          onClick={cancelDelete} // Arka plana tıklayınca kapat
+        >
+          <div 
+            className="bg-autumn-bg p-6 rounded-xl w-full max-w-sm shadow-2xl text-autumn-text border-2 border-autumn-rufous/50 flex flex-col items-center text-center"
+            onClick={(e) => e.stopPropagation()} // İçeri tıklayınca kapanmasını engelle
+          >
+            {/* Uyarı İkonu */}
+            <div className="bg-autumn-red/10 p-4 rounded-full mb-4">
+              <FaExclamationTriangle size={36} className="text-autumn-red" />
+            </div>
+            
+            <h3 className="text-xl font-bold mb-2">Silme Onayı</h3>
+            
+            <p className="mb-6 font-medium">
+              <span className="font-bold text-autumn-rufous">"{item.urunAdi}"</span> isimli işlemi silmek istediğinize emin misiniz?<br/>
+              <span className="text-sm text-autumn-red font-bold mt-2 inline-block">Bu işlem kalıcıdır.</span>
+            </p>
+            
+            <div className="flex gap-3 w-full">
+              <button 
+                onClick={cancelDelete} 
+                className="flex-1 py-2.5 bg-autumn-card text-autumn-text rounded-lg hover:bg-white font-bold shadow-sm transition-colors border border-autumn-rufous/20"
+              >
+                İptal
+              </button>
+              <button 
+                onClick={confirmDelete} 
+                className="flex-1 py-2.5 bg-autumn-red text-white rounded-lg hover:bg-red-800 font-bold shadow-sm transition-colors"
+              >
+                Evet
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
